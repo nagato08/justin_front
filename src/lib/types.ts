@@ -1,7 +1,8 @@
 export type UserRole = "ADMIN" | "DELIVERER" | "CUSTOMER";
 export interface User { id: string; email: string; displayName: string; role: UserRole }
 export interface AuthResponse { accessToken: string; expiresIn: string; user: User }
-export interface Product { id: string; categoryId: string; name: string; slug: string; description?: string; price: string; imageUrl?: string; portions: number; status: string; category?: Category }
+export interface ProductImage { id: string; url: string; sortOrder: number }
+export interface Product { id: string; categoryId: string; name: string; slug: string; description?: string; price: string; imageUrl?: string; images?: ProductImage[]; portions: number; status: string; category?: Category; createdAt?: string; updatedAt?: string }
 export interface Category { id: string; name: string; slug: string; isActive: boolean; products: Product[]; _count?: { products: number } }
 export interface StoreStatus { businessName: string; isOpen: boolean; reason: string; message: string; mobileMoneyEnabled: boolean; nextOpeningAt?: string | null }
 export interface CartLine { product: Product; quantity: number }
