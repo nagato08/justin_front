@@ -60,3 +60,9 @@ docker run -d --name ma-cuisine-frontend -p 8080:80 ma-cuisine-frontend
 Le conteneur Nginx gère les routes React et met en cache les ressources versionnées. Placez votre reverse proxy HTTPS devant le port 8080. Les variables `VITE_*` sont intégrées au moment du build : reconstruisez l’image après leur modification.
 
 Pour que la PWA, la géolocalisation et les notifications push fonctionnent sur téléphone, le frontend doit être servi en HTTPS. Configurez aussi les clés VAPID côté backend.
+
+## CI/CD
+
+Le workflow `.github/workflows/ci-cd.yml` vérifie le lint et le build sur chaque pull request et push vers `main`. Après un push valide sur `main`, il synchronise le frontend sur le VPS, reconstruit le conteneur `web` et contrôle `https://justin.tadjo.dev`. En cas d’échec du contrôle HTTP, l’image précédente est restaurée.
+
+Créer dans GitHub, sous **Settings → Secrets and variables → Actions**, le secret `VPS_SSH_PRIVATE_KEY` contenant la clé privée de déploiement. Sans ce secret, la CI s’exécute et le déploiement est ignoré. Le workflow peut aussi être relancé manuellement depuis l’onglet **Actions**.
