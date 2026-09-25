@@ -5,7 +5,7 @@ export default defineConfig({
   server: { port: 3001 },
   plugins: [react(), VitePWA({
     registerType: "autoUpdate",
-    includeAssets: ["favicon.svg", "app-icon.svg", "push-handler.js"],
+    includeAssets: ["app-icon.svg", "pwa-192x192.png", "pwa-512x512.png", "pwa-maskable-512x512.png", "push-handler.js"],
     manifest: {
       name: "Ma cuisine",
       short_name: "Ma cuisine",
@@ -13,9 +13,16 @@ export default defineConfig({
       theme_color: "#151916",
       background_color: "#f8f6f1",
       display: "standalone",
+      id: "/",
+      scope: "/",
       start_url: "/",
+      orientation: "portrait-primary",
       lang: "fr",
-      icons: [{ src: "/app-icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any maskable" }],
+      icons: [
+        { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+        { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+        { src: "/pwa-maskable-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      ],
     },
     workbox: { importScripts: ["push-handler.js"], navigateFallback: "/index.html", runtimeCaching: [{ urlPattern: /^https:\/\/demotiles\.maplibre\.org\//, handler: "CacheFirst", options: { cacheName: "map-tiles", expiration: { maxEntries: 150, maxAgeSeconds: 86400 } } }] },
   })],
