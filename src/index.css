@@ -135,3 +135,18 @@ html,body,#root{max-width:100%;overflow-x:hidden}input,select,textarea{max-width
 .image-preview-grid{grid-template-columns:repeat(3,1fr)}
 .admin-product-detail .admin-page-head>.button{width:100%;margin-top:14px}
 }
+
+/* Product archive confirmation */
+.button.danger{background:#b9473d;color:white;border-color:#b9473d}
+.button.danger:hover{background:#a43c33;border-color:#a43c33;transform:translateY(-1px)}
+.archive-confirm-modal{width:min(500px,100%);text-align:center}
+.archive-confirm-icon{width:58px;height:58px;margin:0 auto 18px;border-radius:50%;display:grid;place-items:center;background:#f8e6e2;color:var(--red)}
+.archive-confirm-icon svg{width:25px}
+.archive-confirm-modal h2{margin:11px 0 13px}
+.archive-confirm-modal>p{max-width:410px;margin:0 auto;color:var(--muted);font-size:13px;line-height:1.7}
+.archive-confirm-actions{display:flex;justify-content:center;gap:10px;margin-top:26px}
+@media(max-width:600px){
+.archive-confirm-actions{flex-direction:column-reverse}
+.archive-confirm-actions .button{width:100%}
+.admin-product-detail .head-actions{display:grid;grid-template-columns:1fr}
+}
