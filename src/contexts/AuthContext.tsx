@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { api } from "../lib/api";
 import type { AuthResponse, User } from "../lib/types";
 
-interface AuthContextValue { user: User | null; token: string | null; loading: boolean; login(email: string, password: string): Promise<User>; register(displayName: string, email: string, password: string): Promise<User>; loginGoogle(idToken: string): Promise<User>; logout(): void }
+interface AuthContextValue { user: User | null; token: string | null; loading: boolean; login(email: string, password: string): Promise<User>; register(displayName: string, email: string, password: string): Promise<User>; loginPhone(idToken: string, displayName?: string): Promise<User>; logout(): void }
 const AuthContext = createContext<AuthContextValue | null>(null);
 const STORAGE_KEY = "ma-cuisine-session";
 
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     login: (email, password) => authenticate("/auth/login", { email, password }),
     register: (displayName, email, password) => authenticate("/auth/register", { displayName, email, password }),
-    loginGoogle: (idToken) => authenticate("/auth/google", { idToken }),
+    loginPhone: (idToken, displayName) => authenticate("/auth/phone", { idToken, displayName }),
     logout: () => persist(null),
   }), [session, loading, persist]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

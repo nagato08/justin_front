@@ -150,3 +150,4 @@ html,body,#root{max-width:100%;overflow-x:hidden}input,select,textarea{max-width
 .archive-confirm-actions .button{width:100%}
 .admin-product-detail .head-actions{display:grid;grid-template-columns:1fr}
 }
+/* Phone OTP authentication */.phone-auth form{display:grid;gap:12px}.field-hint{color:#8b918d;font-size:11px;margin-top:-4px}.otp-sent{font-size:13px;color:var(--ink-2);margin:0}.otp-sent .text-button{margin-left:4px}.email-switch{display:flex;align-items:center;justify-content:center;gap:8px;background:white;border:1px solid var(--line);color:var(--ink)}.email-switch svg{width:17px}

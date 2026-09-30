@@ -1,5 +1,5 @@
 export type UserRole = "ADMIN" | "DELIVERER" | "CUSTOMER";
-export interface User { id: string; email: string; displayName: string; role: UserRole }
+export interface User { id: string; email?: string | null; phone?: string | null; displayName: string; role: UserRole }
 export interface AuthResponse { accessToken: string; expiresIn: string; user: User }
 export interface ProductImage { id: string; url: string; sortOrder: number }
 export interface Product { id: string; categoryId: string; name: string; slug: string; description?: string; price: string; imageUrl?: string; images?: ProductImage[]; portions: number; status: string; category?: Category; createdAt?: string; updatedAt?: string }
