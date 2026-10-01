@@ -5,16 +5,19 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import heroFood from "../assets/hero-food-v2.webp";
 import { GoogleButton } from "../components/GoogleButton";
 import { Logo } from "../components/Logo";
+import { PhoneAuth } from "../components/PhoneAuth";
 import { useAuth } from "../contexts/AuthContext";
+import { firebaseConfigured } from "../lib/firebase";
 
 type Mode = "login" | "register";
 
 export function AuthPage() {
   const [mode, setMode] = useState<Mode>("login");
+  const [showEmail, setShowEmail] = useState(!firebaseConfigured);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const { login, register, loginGoogle } = useAuth();
+  const { login, register, loginGoogle, loginPhone } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const destination = (location.state as { from?: string } | null)?.from || "/";
@@ -53,6 +56,11 @@ export function AuthPage() {
     }
   }, [finish, loginGoogle]);
 
+  const phone = useCallback(
+    async (idToken: string, displayName?: string) => finish((await loginPhone(idToken, displayName)).role),
+    [finish, loginPhone],
+  );
+
   const switchMode = (next: Mode) => {
     setMode(next);
     setError("");
@@ -75,58 +83,71 @@ export function AuthPage() {
         </div>
 
         <div className="auth-card">
-          <h1>{mode === "login" ? "Bon retour parmi nous" : "Créer un compte"}</h1>
-          <p className="auth-lead">Un compte protège vos commandes et vous permet de suivre la livraison en direct.</p>
+          <h1>Connexion ou inscription</h1>
+          <p className="auth-lead">
+            {firebaseConfigured
+              ? "Entrez votre numéro : si c’est votre première commande, nous créons votre compte en quelques secondes."
+              : "Un compte protège vos commandes et vous permet de suivre la livraison en direct."}
+          </p>
 
+          {firebaseConfigured && <PhoneAuth onVerified={phone} />}
+
+          <div className="divider"><span>ou</span></div>
           <GoogleButton onCredential={google} />
 
-          <div className="divider"><span>ou avec votre e-mail</span></div>
-
-          <div className="segmented" role="tablist" aria-label="Choix de l’action">
-            <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => switchMode("login")}>J’ai un compte</button>
-            <button type="button" role="tab" aria-selected={mode === "register"} onClick={() => switchMode("register")}>Je suis nouveau</button>
-          </div>
-
-          <form onSubmit={submit} className="stack">
-            {mode === "register" && (
-              <div className="field">
-                <label htmlFor="auth-fullname">Nom complet</label>
-                <div className="input-group">
-                  <UserRound aria-hidden="true" />
-                  <input id="auth-fullname" name="name" required minLength={2} autoComplete="name" placeholder="Ex. Grâce Mbarga" />
-                </div>
-              </div>
-            )}
-            <div className="field">
-              <label htmlFor="auth-email">Adresse e-mail</label>
-              <div className="input-group">
-                <Mail aria-hidden="true" />
-                <input id="auth-email" type="email" name="email" required autoComplete="email" placeholder="vous@exemple.com" />
-              </div>
-            </div>
-            <div className="field">
-              <label htmlFor="auth-password">Mot de passe</label>
-              <div className="input-group">
-                <LockKeyhole aria-hidden="true" />
-                <input
-                  id="auth-password"
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  required
-                  minLength={mode === "login" ? 6 : 8}
-                  autoComplete={mode === "login" ? "current-password" : "new-password"}
-                />
-                <button type="button" className="input-action" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}>
-                  {showPassword ? <EyeOff /> : <Eye />}
-                </button>
-              </div>
-              {mode === "register" && <small className="field-hint">8 caractères minimum.</small>}
-            </div>
-            {error && <p className="field-error" role="alert">{error}</p>}
-            <button className="button primary block lg" disabled={busy}>
-              {busy ? "Un instant…" : mode === "login" ? "Se connecter" : "Créer mon compte"}
+          {!showEmail ? (
+            <button type="button" className="button ghost block email-toggle" onClick={() => setShowEmail(true)}>
+              <Mail aria-hidden="true" /> Continuer avec un e-mail
             </button>
-          </form>
+          ) : (
+            <section className="email-auth" aria-label="Connexion par e-mail">
+              <div className="segmented" role="tablist" aria-label="Choix de l’action">
+                <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => switchMode("login")}>J’ai un compte</button>
+                <button type="button" role="tab" aria-selected={mode === "register"} onClick={() => switchMode("register")}>Je suis nouveau</button>
+              </div>
+              <form onSubmit={submit} className="stack">
+                {mode === "register" && (
+                  <div className="field">
+                    <label htmlFor="auth-fullname">Nom complet</label>
+                    <div className="input-group">
+                      <UserRound aria-hidden="true" />
+                      <input id="auth-fullname" name="name" required minLength={2} autoComplete="name" placeholder="Ex. Grâce Mbarga" />
+                    </div>
+                  </div>
+                )}
+                <div className="field">
+                  <label htmlFor="auth-email">Adresse e-mail</label>
+                  <div className="input-group">
+                    <Mail aria-hidden="true" />
+                    <input id="auth-email" type="email" name="email" required autoComplete="email" placeholder="vous@exemple.com" />
+                  </div>
+                </div>
+                <div className="field">
+                  <label htmlFor="auth-password">Mot de passe</label>
+                  <div className="input-group">
+                    <LockKeyhole aria-hidden="true" />
+                    <input
+                      id="auth-password"
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      required
+                      minLength={mode === "login" ? 6 : 8}
+                      autoComplete={mode === "login" ? "current-password" : "new-password"}
+                    />
+                    <button type="button" className="input-action" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}>
+                      {showPassword ? <EyeOff /> : <Eye />}
+                    </button>
+                  </div>
+                  {mode === "register" && <small className="field-hint">8 caractères minimum.</small>}
+                </div>
+                {error && <p className="field-error" role="alert">{error}</p>}
+                <button className={firebaseConfigured ? "button secondary block lg" : "button primary block lg"} disabled={busy}>
+                  {busy ? "Un instant…" : mode === "login" ? "Se connecter" : "Créer mon compte"}
+                </button>
+              </form>
+            </section>
+          )}
+          {!showEmail && error && <p className="field-error" role="alert">{error}</p>}
 
           <p className="auth-legal">En continuant, vous acceptez nos conditions d’utilisation.</p>
         </div>

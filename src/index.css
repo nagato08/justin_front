@@ -799,6 +799,8 @@ main:has(.mobile-action-bar) { padding-bottom: 110px; }
 .auth-lead { color: var(--ink-2); margin: 8px 0 24px; }
 .google-button { display: flex; justify-content: center; min-height: 44px; }
 .auth-hint { margin-top: 8px; text-align: center; font-size: 0.8125rem; color: var(--ink-3); }
+.email-toggle { margin-top: 12px; }
+.email-auth { margin-top: 8px; }
 .auth-legal { margin-top: 24px; font-size: 0.8125rem; color: var(--ink-3); text-align: center; }
 .phone-auth form { display: flex; flex-direction: column; gap: 16px; }
 .otp-sent { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: var(--ink-2); }

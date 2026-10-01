@@ -5,6 +5,7 @@ import { Alert, Badge, ConfirmDialog, EmptyState, Modal, PageHeader, Skeleton } 
 import { useAuth } from "../../contexts/AuthContext";
 import { api, dateTime } from "../../lib/api";
 import { ROLE_LABELS } from "../../lib/labels";
+import { normalizePhone } from "../../lib/phone";
 import type { User, UserRole } from "../../lib/types";
 
 interface AdminUser extends User { isActive: boolean; createdAt: string; lastLoginAt?: string }
@@ -41,6 +42,10 @@ export function AdminUsersPage() {
   const create = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
+    if (!data.get("phone") && !data.get("email")) {
+      setFormError("Indiquez au moins un numéro de téléphone ou une adresse e-mail.");
+      return;
+    }
     setBusy(true);
     setFormError("");
     try {
@@ -48,7 +53,8 @@ export function AdminUsersPage() {
         method: "POST",
         body: JSON.stringify({
           displayName: data.get("name"),
-          email: data.get("email"),
+          email: data.get("email") || undefined,
+          phone: data.get("phone") ? normalizePhone(String(data.get("phone"))) : undefined,
           role: "DELIVERER",
         }),
       }, token);
@@ -138,16 +144,21 @@ export function AdminUsersPage() {
       )}
 
       {show && (
-        <Modal title="Inviter un livreur" description="Il se connectera avec le compte Google lié à cette adresse." onClose={() => setShow(false)} size="sm" locked={busy}>
+        <Modal title="Inviter un livreur" description="Il se connectera par code SMS avec son numéro, ou avec son compte Google." onClose={() => setShow(false)} size="sm" locked={busy}>
           <form onSubmit={create} className="stack">
             <div className="field">
               <label htmlFor="driver-name">Nom</label>
               <input id="driver-name" name="name" required minLength={2} autoFocus />
             </div>
             <div className="field">
-              <label htmlFor="driver-email">Adresse Gmail</label>
-              <input id="driver-email" name="email" type="email" required autoComplete="off" placeholder="livreur@gmail.com" />
-              <small className="field-hint">Utilisez l’adresse de son compte Google.</small>
+              <label htmlFor="driver-phone">Téléphone</label>
+              <input id="driver-phone" name="phone" type="tel" inputMode="tel" autoComplete="off" placeholder="6 90 00 00 00" />
+              <small className="field-hint">Pour la connexion par SMS. Indicatif +237 ajouté automatiquement.</small>
+            </div>
+            <div className="field">
+              <label htmlFor="driver-email">Adresse Gmail <span className="optional">facultatif</span></label>
+              <input id="driver-email" name="email" type="email" autoComplete="off" placeholder="livreur@gmail.com" />
+              <small className="field-hint">Pour la connexion avec son compte Google.</small>
             </div>
             {formError && <p className="field-error" role="alert">{formError}</p>}
             <div className="modal-actions">
