@@ -4,5 +4,58 @@ import { useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import { SOCKET_URL } from "../lib/api";
 import type { DeliveryLocation } from "../lib/types";
-const STYLE=(import.meta.env.VITE_MAP_STYLE_URL as string|undefined)||"https://demotiles.maplibre.org/style.json";
-export function TrackingMap({token,reference,initial,destination}:{token:string;reference:string;initial?:DeliveryLocation|null;destination?:[number,number]}){const el=useRef<HTMLDivElement>(null);const mapRef=useRef<maplibregl.Map|null>(null);const driver=useRef<maplibregl.Marker|null>(null);useEffect(()=>{if(!el.current)return;const point=initial?[Number(initial.longitude),Number(initial.latitude)] as [number,number]:destination||[9.7679,4.0511];const map=new maplibregl.Map({container:el.current,style:STYLE,center:point,zoom:13});map.addControl(new maplibregl.NavigationControl({showCompass:false}));if(destination)new maplibregl.Marker({color:"#173f35"}).setLngLat(destination).setPopup(new maplibregl.Popup().setText("Votre destination")).addTo(map);if(initial)driver.current=new maplibregl.Marker({color:"#ec6a2c"}).setLngLat(point).addTo(map);mapRef.current=map;const socket=io(`${SOCKET_URL}/delivery`,{auth:{token,reference},transports:["websocket"]});socket.on("delivery:location",(location:DeliveryLocation)=>{const pos:[number,number]=[Number(location.longitude),Number(location.latitude)];if(!driver.current)driver.current=new maplibregl.Marker({color:"#ec6a2c"}).setLngLat(pos).addTo(map);else driver.current.setLngLat(pos);map.easeTo({center:pos,duration:700});});return()=>{socket.disconnect();map.remove();mapRef.current=null}},[token,reference]);return <div className="tracking-map" ref={el}/>}
+
+const STYLE = (import.meta.env.VITE_MAP_STYLE_URL as string | undefined) || "https://demotiles.maplibre.org/style.json";
+const DRIVER_COLOR = "#c2521f";
+const DESTINATION_COLOR = "#1f4a3d";
+
+interface TrackingMapProps {
+  token: string;
+  reference: string;
+  initial?: DeliveryLocation | null;
+  destination?: [number, number];
+}
+
+export function TrackingMap({ token, reference, initial, destination }: TrackingMapProps) {
+  const element = useRef<HTMLDivElement>(null);
+  const driver = useRef<maplibregl.Marker | null>(null);
+  const start = useRef({ initial, destination });
+
+  useEffect(() => {
+    if (!element.current) return;
+    const { initial: first, destination: target } = start.current;
+    const point: [number, number] = first ? [Number(first.longitude), Number(first.latitude)] : target ?? [9.7679, 4.0511];
+    const map = new maplibregl.Map({ container: element.current, style: STYLE, center: point, zoom: 13 });
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }));
+    if (target) {
+      new maplibregl.Marker({ color: DESTINATION_COLOR })
+        .setLngLat(target)
+        .setPopup(new maplibregl.Popup().setText("Votre destination"))
+        .addTo(map);
+    }
+    if (first) driver.current = new maplibregl.Marker({ color: DRIVER_COLOR }).setLngLat(point).addTo(map);
+
+    const socket = io(`${SOCKET_URL}/delivery`, { auth: { token, reference }, transports: ["websocket"] });
+    socket.on("delivery:location", (location: DeliveryLocation) => {
+      const position: [number, number] = [Number(location.longitude), Number(location.latitude)];
+      if (!driver.current) driver.current = new maplibregl.Marker({ color: DRIVER_COLOR }).setLngLat(position).addTo(map);
+      else driver.current.setLngLat(position);
+      map.easeTo({ center: position, duration: 700 });
+    });
+    return () => {
+      socket.disconnect();
+      map.remove();
+      driver.current = null;
+    };
+  }, [token, reference]);
+
+  return (
+    <div className="tracking">
+      <div className="tracking-map" ref={element} aria-label="Carte du suivi de livraison" />
+      <div className="tracking-legend" aria-hidden="true">
+        <span><i className="dot-driver" /> Livreur</span>
+        <span><i className="dot-destination" /> Vous</span>
+      </div>
+    </div>
+  );
+}

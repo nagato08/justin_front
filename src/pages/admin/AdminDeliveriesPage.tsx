@@ -1,8 +1,10 @@
-import { Bike, LocateFixed, MapPin, Plus, Route } from "lucide-react";
+import { Bike, Check, LocateFixed, MapPin, Plus, Route } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { Alert, Badge, EmptyState, Modal, PageHeader } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
 import { api, dateTime } from "../../lib/api";
+import { assignmentStatusLabel, assignmentStatusTone, stopStatusLabel, stopStatusTone } from "../../lib/labels";
 import type { Order, User } from "../../lib/types";
 
 interface Assignment {
@@ -22,8 +24,10 @@ export function AdminDeliveriesPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
+  const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
   const [coords, setCoords] = useState({ latitude: 4.0511, longitude: 9.7679 });
+  const [located, setLocated] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -40,23 +44,28 @@ export function AdminDeliveriesPage() {
     }
   }, [token]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const locate = () => {
-    if (!navigator.geolocation) return setError("La géolocalisation n’est pas disponible.");
+    if (!navigator.geolocation) return setFormError("La géolocalisation n’est pas disponible.");
     navigator.geolocation.getCurrentPosition(
-      ({ coords: current }) => setCoords({ latitude: current.latitude, longitude: current.longitude }),
-      () => setError("Autorisez la position GPS pour utiliser le point de départ actuel."),
+      ({ coords: current }) => {
+        setCoords({ latitude: current.latitude, longitude: current.longitude });
+        setLocated(true);
+      },
+      () => setFormError("Autorisez la position GPS pour utiliser votre point de départ actuel."),
       { enableHighAccuracy: true, timeout: 12000 },
     );
   };
 
   const create = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!selected.length) return setError("Sélectionnez au moins une commande prête.");
+    if (!selected.length) return setFormError("Sélectionnez au moins une commande prête.");
     const data = new FormData(event.currentTarget);
     setBusy(true);
-    setError("");
+    setFormError("");
     try {
       await api("/admin/delivery/assignments", {
         method: "POST",
@@ -66,35 +75,135 @@ export function AdminDeliveriesPage() {
       setSelected([]);
       await load();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Création impossible.");
-    } finally { setBusy(false); }
+      setFormError(reason instanceof Error ? reason.message : "Création impossible.");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const toggleOrder = (id: string) => setSelected((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
+  const toggleOrder = (id: string) => setSelected((current) => (current.includes(id) ? current.filter((value) => value !== id) : [...current, id]));
+  const active = items.filter((item) => item.status === "PLANNED" || item.status === "IN_PROGRESS");
+  const done = items.filter((item) => item.status !== "PLANNED" && item.status !== "IN_PROGRESS");
 
-  return <div>
-    <div className="admin-page-head">
-      <div><span className="eyebrow">Terrain</span><h1>Livraisons</h1><p>Créez les tournées et suivez leur progression.</p></div>
-      <button className="button primary" onClick={() => setShow(true)} disabled={!drivers.length || !orders.length}><Plus/> Créer une tournée</button>
+  return (
+    <div className="admin-page">
+      <PageHeader
+        title="Livraisons"
+        description="Regroupez les commandes prêtes en tournées. L’ordre de passage est optimisé automatiquement."
+        actions={
+          <button type="button" className="button primary" onClick={() => { setFormError(""); setShow(true); }} disabled={!drivers.length || !orders.length}>
+            <Plus aria-hidden="true" /> Nouvelle tournée
+            {orders.length > 0 && <span className="count-badge light">{orders.length}</span>}
+          </button>
+        }
+      />
+      {error && <Alert tone="danger" onClose={() => setError("")}>{error}</Alert>}
+      {!drivers.length ? (
+        <Alert tone="info">Invitez d’abord un livreur depuis la page Utilisateurs.</Alert>
+      ) : !orders.length && (
+        <Alert tone="info">Aucune commande à livrer n’est prête. Passez une commande au statut « Prête » pour l’ajouter à une tournée.</Alert>
+      )}
+
+      {!items.length ? (
+        <EmptyState icon={Route} title="Aucune tournée">Les tournées créées apparaîtront ici avec leur progression.</EmptyState>
+      ) : (
+        <>
+          {active.length > 0 && <AssignmentGroup title="En cours" items={active} />}
+          {done.length > 0 && <AssignmentGroup title="Terminées" items={done} />}
+        </>
+      )}
+
+      {show && (
+        <Modal title="Nouvelle tournée" description="Choisissez le livreur et les commandes à lui confier." onClose={() => setShow(false)} size="lg" locked={busy}>
+          <form onSubmit={create} className="stack">
+            <div className="field">
+              <label htmlFor="driver">Livreur</label>
+              <select id="driver" name="driverId" required defaultValue="">
+                <option value="" disabled>Choisir un livreur</option>
+                {drivers.map((driver) => <option value={driver.id} key={driver.id}>{driver.displayName}</option>)}
+              </select>
+            </div>
+
+            <fieldset className="select-list">
+              <legend>Commandes prêtes <span className="optional">{selected.length} sélectionnée{selected.length > 1 ? "s" : ""}</span></legend>
+              {orders.map((order) => (
+                <label key={order.id} className={selected.includes(order.id) ? "select-item selected" : "select-item"}>
+                  <input type="checkbox" checked={selected.includes(order.id)} onChange={() => toggleOrder(order.id)} />
+                  <span className="select-check" aria-hidden="true"><Check /></span>
+                  <span>
+                    <strong>{order.customerName}</strong>
+                    <small><MapPin aria-hidden="true" />{order.deliveryAddress || "Point GPS"} · {order.reference}</small>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+
+            <div className="field">
+              <span className="field-label">Point de départ</span>
+              <button type="button" className={located ? "button secondary block success-text" : "button secondary block"} onClick={locate}>
+                <LocateFixed aria-hidden="true" /> {located ? "Position actuelle utilisée" : "Utiliser ma position actuelle"}
+              </button>
+              <details className="advanced">
+                <summary>Saisir les coordonnées</summary>
+                <div className="field-row">
+                  <div className="field">
+                    <label htmlFor="start-lat">Latitude</label>
+                    <input id="start-lat" type="number" step="any" value={coords.latitude} onChange={(event) => setCoords((current) => ({ ...current, latitude: Number(event.target.value) }))} required />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="start-lng">Longitude</label>
+                    <input id="start-lng" type="number" step="any" value={coords.longitude} onChange={(event) => setCoords((current) => ({ ...current, longitude: Number(event.target.value) }))} required />
+                  </div>
+                </div>
+              </details>
+            </div>
+
+            {formError && <p className="field-error" role="alert">{formError}</p>}
+            <div className="modal-actions">
+              <button type="button" className="button secondary" onClick={() => setShow(false)} disabled={busy}>Annuler</button>
+              <button className="button primary" disabled={busy || !selected.length}>{busy ? "Création…" : `Créer la tournée (${selected.length})`}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
-    {error && <div className="error-banner">{error}</div>}
-    {(!drivers.length || !orders.length) && <div className="info-banner"><Route/> {!drivers.length ? "Invitez d’abord un livreur actif." : "Aucune commande en livraison n’est prête pour une tournée."}</div>}
-    <div className="assignment-grid">
-      {items.map((assignment) => <article className="panel assignment" key={assignment.id}>
-        <header><span><Bike/></span><div><h3>{assignment.driver.displayName}</h3><small>{dateTime(assignment.createdAt)}</small></div><b>{assignment.status}</b></header>
-        {assignment.stops.map((stop) => <div className="stop" key={stop.id}><em>{stop.sequence}</em><div><strong>{stop.order.reference} · {stop.order.customerName}</strong><small><MapPin/>{stop.order.deliveryAddress || "Position GPS"}</small></div><span>{stop.status}</span></div>)}
-      </article>)}
-      {!items.length && <div className="empty-state large"><Bike/><h2>Aucune tournée</h2><p>Les tournées créées apparaîtront ici.</p></div>}
-    </div>
-    {show && <div className="modal-backdrop" onMouseDown={() => setShow(false)}><div className="modal delivery-modal" onMouseDown={(event) => event.stopPropagation()}>
-      <span className="eyebrow">Nouvelle tournée</span><h2>Organiser les livraisons</h2><p>L’ordre choisi sera optimisé par le serveur à partir du point de départ.</p>
-      <form onSubmit={create}>
-        <label>Livreur<select name="driverId" required defaultValue=""><option value="" disabled>Choisir un livreur</option>{drivers.map((driver) => <option value={driver.id} key={driver.id}>{driver.displayName}</option>)}</select></label>
-        <fieldset className="order-picker"><legend>Commandes prêtes</legend>{orders.map((order) => <label key={order.id} className={selected.includes(order.id) ? "selected" : ""}><input type="checkbox" checked={selected.includes(order.id)} onChange={() => toggleOrder(order.id)}/><span><strong>{order.reference} · {order.customerName}</strong><small><MapPin/>{order.deliveryAddress || "Point GPS sélectionné"}</small></span></label>)}</fieldset>
-        <div className="fields two"><label>Latitude<input type="number" step="any" value={coords.latitude} onChange={(event) => setCoords((current) => ({ ...current, latitude: Number(event.target.value) }))} required/></label><label>Longitude<input type="number" step="any" value={coords.longitude} onChange={(event) => setCoords((current) => ({ ...current, longitude: Number(event.target.value) }))} required/></label></div>
-        <button type="button" className="button subtle wide" onClick={locate}><LocateFixed/> Utiliser ma position actuelle</button>
-        <button className="button primary wide" disabled={busy || !selected.length}>{busy ? "Création…" : `Créer la tournée (${selected.length})`}</button>
-      </form>
-    </div></div>}
-  </div>;
+  );
+}
+
+function AssignmentGroup({ title, items }: { title: string; items: Assignment[] }) {
+  return (
+    <section aria-label={title}>
+      <h2 className="group-title">{title} <span>{items.length}</span></h2>
+      <div className="assignment-grid">
+        {items.map((assignment) => {
+          const delivered = assignment.stops.filter((stop) => stop.status === "DELIVERED").length;
+          return (
+            <article className="card assignment" key={assignment.id}>
+              <header className="assignment-head">
+                <span className="card-icon"><Bike aria-hidden="true" /></span>
+                <div>
+                  <h3>{assignment.driver.displayName}</h3>
+                  <small className="muted">{dateTime(assignment.createdAt)} · {delivered}/{assignment.stops.length} livrée{delivered > 1 ? "s" : ""}</small>
+                </div>
+                <Badge tone={assignmentStatusTone(assignment.status)}>{assignmentStatusLabel(assignment.status)}</Badge>
+              </header>
+              <div className="bar" aria-hidden="true"><span style={{ width: `${(delivered / Math.max(1, assignment.stops.length)) * 100}%` }} /></div>
+              <ol className="stop-list">
+                {assignment.stops.map((stop) => (
+                  <li key={stop.id} className={stop.status === "DELIVERED" ? "done" : undefined}>
+                    <span className="stop-index">{stop.sequence}</span>
+                    <div>
+                      <strong>{stop.order.customerName}</strong>
+                      <small>{stop.order.deliveryAddress || "Position GPS"}</small>
+                    </div>
+                    <Badge tone={stopStatusTone(stop.status)}>{stopStatusLabel(stop.status)}</Badge>
+                  </li>
+                ))}
+              </ol>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
 }

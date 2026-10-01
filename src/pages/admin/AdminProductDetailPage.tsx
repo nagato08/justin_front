@@ -1,9 +1,11 @@
-import { AlertTriangle, ArrowLeft, CalendarDays, Eye, EyeOff, Trash2, X } from "lucide-react";
+import { Archive, ArrowLeft, CalendarDays, Eye, EyeOff } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ProductGallery } from "../../components/ProductGallery";
+import { Alert, Badge, ConfirmDialog, PageHeader, Skeleton } from "../../components/ui";
 import { useAuth } from "../../contexts/AuthContext";
 import { api, dateTime, money } from "../../lib/api";
+import { productStatusLabel, productStatusTone } from "../../lib/labels";
 import type { Product } from "../../lib/types";
 
 export function AdminProductDetailPage() {
@@ -18,12 +20,10 @@ export function AdminProductDetailPage() {
   const load = useCallback(() =>
     api<Product>(`/admin/catalog/products/${encodeURIComponent(id)}`, {}, token)
       .then(setProduct)
-      .catch((reason: unknown) =>
-        setError(reason instanceof Error ? reason.message : "Produit introuvable."),
-      ), [id, token]);
+      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Plat introuvable.")), [id, token]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   const archive = async () => {
@@ -31,16 +31,11 @@ export function AdminProductDetailPage() {
     setBusy(true);
     setError("");
     try {
-      await api(
-        `/admin/catalog/products/${product.id}`,
-        { method: "DELETE" },
-        token,
-      );
+      await api(`/admin/catalog/products/${product.id}`, { method: "DELETE" }, token);
       navigate("/admin/catalogue", { replace: true });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Archivage impossible.");
       setConfirmArchive(false);
-    } finally {
       setBusy(false);
     }
   };
@@ -50,17 +45,7 @@ export function AdminProductDetailPage() {
     setBusy(true);
     setError("");
     try {
-      const next = await api<Product>(
-        `/admin/catalog/products/${product.id}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            status: product.status === "ACTIVE" ? "UNAVAILABLE" : "ACTIVE",
-          }),
-        },
-        token,
-      );
-      setProduct(next);
+      setProduct(await api<Product>(`/admin/catalog/products/${product.id}`, { method: "PATCH", body: JSON.stringify({ status: product.status === "ACTIVE" ? "UNAVAILABLE" : "ACTIVE" }) }, token));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Modification impossible.");
     } finally {
@@ -68,75 +53,49 @@ export function AdminProductDetailPage() {
     }
   };
 
+  const active = product?.status === "ACTIVE";
+
   return (
-    <div className="admin-product-detail">
-      <Link className="detail-back" to="/admin/catalogue"><ArrowLeft /> Retour au catalogue</Link>
-      {error && <div className="error-banner">{error}</div>}
+    <div className="admin-page">
+      <Link className="back-link" to="/admin/catalogue"><ArrowLeft aria-hidden="true" /> Catalogue</Link>
+      {error && <Alert tone="danger" onClose={() => setError("")}>{error}</Alert>}
       {!product ? (
-        !error && <div className="product-detail-loading" />
+        !error && <div className="product-layout"><Skeleton className="skeleton-gallery" /><Skeleton className="skeleton-block" /></div>
       ) : (
         <>
-          <div className="admin-page-head">
-            <div>
-              <span className="eyebrow">{product.category?.name ?? "Produit"}</span>
-              <h1>{product.name}</h1>
-              <p>Consultez le rendu présenté aux clients et sa disponibilité.</p>
-            </div>
-            <div className="head-actions">
-              <button className={product.status === "ACTIVE" ? "button subtle" : "button primary"} onClick={toggle} disabled={busy}>
-                {product.status === "ACTIVE" ? <EyeOff /> : <Eye />}
-                {busy ? "Modification…" : product.status === "ACTIVE" ? "Rendre indisponible" : "Mettre en ligne"}
-              </button>
-              <button className="button danger" onClick={() => setConfirmArchive(true)} disabled={busy}>
-                <Trash2 /> Archiver le produit
-              </button>
-            </div>
-          </div>
-          <div className="admin-product-detail-grid">
+          <PageHeader
+            eyebrow={product.category?.name ?? "Plat"}
+            title={product.name}
+            actions={
+              <>
+                <button type="button" className="button ghost danger-text" onClick={() => setConfirmArchive(true)} disabled={busy}>
+                  <Archive aria-hidden="true" /> Archiver
+                </button>
+                <button type="button" className={active ? "button secondary" : "button primary"} onClick={toggle} disabled={busy}>
+                  {active ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                  {active ? "Retirer du menu" : "Mettre en ligne"}
+                </button>
+              </>
+            }
+          />
+          <div className="product-layout">
             <ProductGallery product={product} />
-            <section className="admin-product-facts">
-              <div className="admin-product-status">
-                <span className={product.status === "ACTIVE" ? "active" : ""} />
-                {product.status === "ACTIVE" ? "Visible par les clients" : "Non visible par les clients"}
-              </div>
-              <div>
-                <small>Prix</small>
-                <strong>{money(product.price)}</strong>
-              </div>
-              <div>
-                <small>Portions</small>
-                <strong>{product.portions}</strong>
-              </div>
-              <div>
-                <small>Description</small>
-                <p>{product.description || "Aucune description"}</p>
-              </div>
-              {product.createdAt && (
-                <div className="admin-product-date">
-                  <CalendarDays />
-                  <span>Ajouté le {dateTime(product.createdAt)}</span>
-                </div>
-              )}
+            <section className="card">
+              <dl className="facts">
+                <div><dt>Visibilité</dt><dd><Badge tone={productStatusTone(product.status)}>{productStatusLabel(product.status)}</Badge> <span className="muted small">{active ? "Visible par les clients" : "Masqué du menu"}</span></dd></div>
+                <div><dt>Prix</dt><dd className="price lg">{money(product.price)}</dd></div>
+                <div><dt>Portions</dt><dd>{product.portions} personne{product.portions > 1 ? "s" : ""}</dd></div>
+                <div><dt>Description</dt><dd>{product.description || <span className="muted">Aucune description</span>}</dd></div>
+              </dl>
+              {product.createdAt && <p className="muted small with-icon"><CalendarDays aria-hidden="true" /> Ajouté le {dateTime(product.createdAt)}</p>}
             </section>
           </div>
         </>
       )}
       {confirmArchive && product && (
-        <div className="modal-backdrop" onMouseDown={() => !busy && setConfirmArchive(false)}>
-          <div className="modal archive-confirm-modal" onMouseDown={(event) => event.stopPropagation()}>
-            <button className="modal-close" type="button" onClick={() => setConfirmArchive(false)} disabled={busy} aria-label="Fermer"><X /></button>
-            <div className="archive-confirm-icon"><AlertTriangle /></div>
-            <span className="eyebrow">Confirmation</span>
-            <h2>Archiver « {product.name} » ?</h2>
-            <p>Le produit disparaîtra immédiatement du menu client. Les anciennes commandes et les informations du produit seront conservées.</p>
-            <div className="archive-confirm-actions">
-              <button className="button subtle" type="button" onClick={() => setConfirmArchive(false)} disabled={busy}>Annuler</button>
-              <button className="button danger" type="button" onClick={archive} disabled={busy}>
-                <Trash2 /> {busy ? "Archivage…" : "Confirmer l’archivage"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog title={`Archiver « ${product.name} » ?`} confirmLabel="Archiver le plat" busy={busy} onConfirm={archive} onCancel={() => setConfirmArchive(false)}>
+          Le plat disparaît immédiatement du menu. Les anciennes commandes restent intactes.
+        </ConfirmDialog>
       )}
     </div>
   );

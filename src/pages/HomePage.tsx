@@ -1,129 +1,167 @@
-import { ArrowUpRight, Check, Clock3, Images, MapPin, Plus, ShoppingBag, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Clock3, MapPin, Search, ShoppingBag, Smartphone, Store, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import heroFood from "../assets/hero-food-v2.webp";
+import { CartBar } from "../components/CartBar";
+import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
-import { useCart } from "../contexts/CartContext";
-import { api, money } from "../lib/api";
-import { productImageUrls } from "../lib/products";
+import { ProductCard } from "../components/ProductCard";
+import { Alert, EmptyState, Skeleton } from "../components/ui";
+import { useAuth } from "../contexts/AuthContext";
+import { api } from "../lib/api";
 import type { Category, StoreStatus } from "../lib/types";
 
 export function HomePage() {
+  const { user } = useAuth();
   const [catalog, setCatalog] = useState<Category[]>([]);
   const [store, setStore] = useState<StoreStatus | null>(null);
   const [active, setActive] = useState("all");
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const { add, count } = useCart();
+  const [error, setError] = useState("");
 
   useEffect(() => {
     Promise.all([api<Category[]>("/catalog"), api<StoreStatus>("/store/status")])
       .then(([categories, status]) => {
-        setCatalog(categories);
+        setCatalog(categories.filter((category) => category.products.length > 0));
         setStore(status);
       })
+      .catch(() => setError("Le menu n’a pas pu être chargé. Vérifiez votre connexion puis rechargez la page."))
       .finally(() => setLoading(false));
   }, []);
 
-  const visible = active === "all"
-    ? catalog
-    : catalog.filter((category) => category.id === active);
+  const sections = useMemo(() => {
+    const search = query.trim().toLowerCase();
+    return catalog
+      .filter((category) => active === "all" || category.id === active)
+      .map((category) => ({
+        ...category,
+        products: search
+          ? category.products.filter((product) => `${product.name} ${product.description ?? ""}`.toLowerCase().includes(search))
+          : category.products,
+      }))
+      .filter((category) => category.products.length > 0);
+  }, [catalog, active, query]);
+
+  const orderable = Boolean(store?.isOpen);
 
   return (
     <>
       <Header />
-      <main className="home-v2">
-        <section className="hero-v2">
-          <div className="container hero-v2-grid">
-            <div className="hero-v2-copy">
-              <div className={store?.isOpen ? "availability open" : "availability closed"}>
-                <span />{store?.message || "Vérification des commandes…"}
-              </div>
-              <span className="hero-kicker"><Sparkles /> Cuisine maison · Douala</span>
-              <h1>Ce soir,<br />on cuisine <em>pour vous.</em></h1>
-              <p>Des plats généreux, préparés à la commande et livrés exactement là où vous le souhaitez.</p>
-              <div className="hero-v2-actions">
-                <a href="#menu" className="button primary">Découvrir le menu <ArrowUpRight /></a>
-                <Link to="/orders" className="hero-link">Suivre une commande</Link>
-              </div>
-              <div className="hero-proof">
-                <div><b>500 F</b><span>livraison minimum</span></div>
-                <div><b>GPS</b><span>suivi en direct</span></div>
-                <div><b>Maison</b><span>préparé avec soin</span></div>
-              </div>
-            </div>
-            <div className="hero-photo-wrap">
-              <img src={heroFood} alt="Plat maison composé de riz, poulet grillé, plantain et crudités" />
-              <div className="hero-photo-label"><span>Au menu</span><strong>Frais. Généreux. Prêt pour vous.</strong></div>
-              <div className="hero-number">01</div>
+      <main id="contenu" className="home">
+        <section className="hero container">
+          <div className="hero-copy">
+            <StoreStatusPill store={store} />
+            <h1>
+              La cuisine de la maison, <em>livrée chez vous.</em>
+            </h1>
+            <p>Des plats généreux préparés à la commande à Douala. Choisissez, placez votre point sur la carte, suivez le livreur en direct.</p>
+            <div className="hero-actions">
+              <a href="#menu" className="button primary lg">Voir le menu</a>
+              {user && <Link to="/orders" className="button secondary lg">Suivre ma commande</Link>}
             </div>
           </div>
+          <figure className="hero-media">
+            <img src={heroFood} alt="Assiette de riz, poulet grillé, plantain et crudités" width={720} height={720} />
+            <figcaption className="hero-note">
+              <MapPin aria-hidden="true" />
+              <span><strong>Livraison dès 500 FCFA</strong> selon votre quartier</span>
+            </figcaption>
+          </figure>
         </section>
 
-        <section className="menu-section-v2 container" id="menu">
-          <div className="section-heading-v2">
-            <div><span>Le menu du moment</span><h2>Choisissez votre plaisir.</h2></div>
-            <p>Chaque plat affiché est réellement disponible. Une fois épuisé, il disparaît du menu.</p>
-          </div>
-          <div className="category-tabs-v2">
-            <button className={active === "all" ? "active" : ""} onClick={() => setActive("all")}>Tout voir</button>
-            {catalog.map((category) => (
-              <button key={category.id} className={active === category.id ? "active" : ""} onClick={() => setActive(category.id)}>
-                {category.name}
-              </button>
-            ))}
-          </div>
-          {loading ? (
-            <div className="product-grid-v2">{[1, 2, 3].map((item) => <div className="product-card-v2 skeleton" key={item} />)}</div>
-          ) : catalog.length === 0 ? (
-            <div className="empty-state-v2"><ShoppingBag /><h3>Le prochain menu se prépare.</h3><p>Revenez bientôt pour découvrir les plats disponibles.</p></div>
-          ) : (
-            <div className="product-grid-v2">
-              {visible.flatMap((category) => category.products.map((product, index) => {
-                const images = productImageUrls(product);
-                return (
-                  <article className="product-card-v2" key={product.id}>
-                    <Link className="product-photo-v2" to={`/produit/${product.slug}`}>
-                      {images[0] ? (
-                        <img src={images[0]} alt={product.name} />
-                      ) : (
-                        <div className="product-placeholder"><span>{String(index + 1).padStart(2, "0")}</span><small>Photo à venir</small></div>
-                      )}
-                      <span className="product-category-v2">{category.name}</span>
-                      {images.length > 1 && <span className="product-photo-count"><Images /> {images.length}</span>}
-                    </Link>
-                    <div className="product-content-v2">
-                      <div>
-                        <Link to={`/produit/${product.slug}`}><h3>{product.name}</h3></Link>
-                        <p>{product.description || "Une portion généreuse, préparée à la commande."}</p>
-                      </div>
-                      <footer>
-                        <div><strong>{money(product.price)}</strong><Link className="product-detail-link" to={`/produit/${product.slug}`}>Voir le détail</Link></div>
-                        <button onClick={() => add(product)} disabled={!store?.isOpen} aria-label={`Ajouter ${product.name}`}><Plus /></button>
-                      </footer>
-                    </div>
-                  </article>
-                );
-              }))}
+        <section className="menu container" id="menu" aria-labelledby="menu-title">
+          <div className="menu-head">
+            <div>
+              <h2 id="menu-title">Le menu du moment</h2>
+              <p>Tout ce qui est affiché est réellement disponible aujourd’hui.</p>
             </div>
+            <div className="search-field">
+              <Search aria-hidden="true" />
+              <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un plat" aria-label="Rechercher un plat" />
+              {query && <button type="button" onClick={() => setQuery("")} aria-label="Effacer la recherche"><X /></button>}
+            </div>
+          </div>
+
+          {store && !store.isOpen && (
+            <Alert tone="warning">
+              <strong>Les commandes sont fermées pour le moment.</strong> {store.message} Vous pouvez parcourir le menu en attendant.
+            </Alert>
+          )}
+          {error && <Alert tone="danger">{error}</Alert>}
+
+          {catalog.length > 1 && (
+            <div className="chips-bar">
+              <div className="chips" role="tablist" aria-label="Catégories">
+                <button type="button" role="tab" aria-selected={active === "all"} className="chip" onClick={() => setActive("all")}>Tout</button>
+                {catalog.map((category) => (
+                  <button key={category.id} type="button" role="tab" aria-selected={active === category.id} className="chip" onClick={() => setActive(category.id)}>
+                    {category.name}
+                    <span className="chip-count">{category.products.length}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="product-grid">
+              {[1, 2, 3, 4].map((item) => <Skeleton key={item} className="product-card-skeleton" />)}
+            </div>
+          ) : !error && catalog.length === 0 ? (
+            <EmptyState icon={ShoppingBag} title="Le prochain menu se prépare">
+              Aucun plat n’est disponible pour l’instant. Revenez un peu plus tard.
+            </EmptyState>
+          ) : sections.length === 0 && !error ? (
+            <EmptyState icon={Search} title="Aucun plat ne correspond" action={<button type="button" className="button secondary" onClick={() => { setQuery(""); setActive("all"); }}>Tout afficher</button>}>
+              Essayez un autre mot ou une autre catégorie.
+            </EmptyState>
+          ) : (
+            sections.map((category) => (
+              <section key={category.id} className="menu-section" aria-labelledby={`cat-${category.id}`}>
+                <h3 id={`cat-${category.id}`} className="menu-section-title">{category.name}</h3>
+                <div className="product-grid">
+                  {category.products.map((product) => <ProductCard key={product.id} product={product} orderable={orderable} />)}
+                </div>
+              </section>
+            ))
           )}
         </section>
 
-        <section className="how-v2">
-          <div className="container">
-            <div className="section-heading-v2 light"><div><span>Comment ça marche</span><h2>Votre repas, sans complication.</h2></div></div>
-            <div className="how-grid-v2">
-              <article><b>01</b><ShoppingBag /><h3>Vous choisissez</h3><p>Ajoutez les plats encore disponibles à votre panier.</p></article>
-              <article><b>02</b><MapPin /><h3>Vous placez le point</h3><p>Votre position GPS ou une autre adresse, c’est vous qui décidez.</p></article>
-              <article><b>03</b><Clock3 /><h3>Vous suivez</h3><p>Recevez les nouvelles et regardez la livraison avancer en direct.</p></article>
-            </div>
-            <div className="how-bottom">
-              <span><Check /> Commande avec compte sécurisé</span>
-              <span><Check /> Paiement espèces ou Mobile Money</span>
-            </div>
-          </div>
+        <section className="how container" aria-labelledby="how-title">
+          <h2 id="how-title">Comment ça marche</h2>
+          <ol className="how-steps">
+            <li>
+              <span className="how-icon"><ShoppingBag aria-hidden="true" /></span>
+              <div><h3>Vous choisissez</h3><p>Ajoutez les plats du jour à votre panier.</p></div>
+            </li>
+            <li>
+              <span className="how-icon"><MapPin aria-hidden="true" /></span>
+              <div><h3>Vous placez le point</h3><p>Votre position GPS ou n’importe quel repère sur la carte.</p></div>
+            </li>
+            <li>
+              <span className="how-icon"><Clock3 aria-hidden="true" /></span>
+              <div><h3>Vous suivez</h3><p>Chaque étape en direct, jusqu’à la position du livreur.</p></div>
+            </li>
+            <li>
+              <span className="how-icon"><Smartphone aria-hidden="true" /></span>
+              <div><h3>Vous payez simplement</h3><p>En espèces à la réception ou par Mobile Money.</p></div>
+            </li>
+          </ol>
         </section>
       </main>
-      {count > 0 && <Link to="/panier" className="floating-cart"><ShoppingBag /><span>Voir mon panier</span><b>{count}</b></Link>}
+      <Footer />
+      <CartBar />
     </>
+  );
+}
+
+function StoreStatusPill({ store }: { store: StoreStatus | null }) {
+  if (!store) return <span className="status-pill"><Store aria-hidden="true" /> Vérification des commandes…</span>;
+  return (
+    <span className={store.isOpen ? "status-pill open" : "status-pill closed"}>
+      <span className="status-dot" aria-hidden="true" />
+      {store.isOpen ? "Commandes ouvertes" : "Commandes fermées"}
+    </span>
   );
 }

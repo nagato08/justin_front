@@ -1,8 +1,9 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AdminShell } from "./components/AdminShell";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PwaInstallPrompt } from "./components/PwaInstallPrompt";
+import { Spinner } from "./components/ui";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
 
@@ -21,10 +22,12 @@ const AdminNotificationsPage = lazy(() => import("./pages/admin/AdminNotificatio
 const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage").then((module) => ({ default: module.AdminOrdersPage })));
 const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage").then((module) => ({ default: module.AdminSettingsPage })));
 const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage").then((module) => ({ default: module.AdminUsersPage })));
+const AccountPage = lazy(() => import("./pages/AccountPage").then((module) => ({ default: module.AccountPage })));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage").then((module) => ({ default: module.NotFoundPage })));
 const DriverPage = lazy(() => import("./pages/driver/DriverPage").then((module) => ({ default: module.DriverPage })));
 
 function Loader() {
-  return <div className="screen-loader"><span /></div>;
+  return <div className="screen-center"><Spinner /></div>;
 }
 
 function App() {
@@ -42,6 +45,7 @@ function App() {
                 <Route path="/commande" element={<CheckoutPage />} />
                 <Route path="/orders" element={<OrdersPage />} />
                 <Route path="/orders/:reference" element={<OrderDetailPage />} />
+                <Route path="/compte" element={<AccountPage />} />
               </Route>
               <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
                 <Route path="/admin" element={<AdminShell />}>
@@ -58,7 +62,7 @@ function App() {
               <Route element={<ProtectedRoute roles={["DELIVERER"]} />}>
                 <Route path="/driver" element={<DriverPage />} />
               </Route>
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
         </CartProvider>
