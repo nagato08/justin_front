@@ -54,9 +54,15 @@ const MESSAGES: Record<string, string> = {
   "auth/code-expired": "Code expiré. Demandez un nouveau code.",
   "auth/captcha-check-failed": "Vérification anti-robot échouée. Réessayez.",
   "auth/network-request-failed": "Connexion réseau impossible.",
+  "auth/billing-not-enabled": "La connexion par SMS n’est pas encore activée (facturation Firebase). Utilisez Google ou votre e-mail.",
+  "auth/operation-not-allowed": "La connexion par SMS n’est pas activée. Utilisez Google ou votre e-mail.",
+  "auth/unauthorized-domain": "Ce site n’est pas autorisé pour la connexion par SMS.",
+  "auth/invalid-app-credential": "Vérification anti-robot échouée. Rechargez la page et réessayez.",
 };
 
 export function otpErrorMessage(error: unknown, fallback: string) {
   const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
-  return MESSAGES[code] ?? (error instanceof Error && !code ? error.message : fallback);
+  if (MESSAGES[code]) return MESSAGES[code];
+  // Code inconnu : on l'affiche pour pouvoir diagnostiquer sans console.
+  return code ? `${fallback} (${code.replace("auth/", "")})` : error instanceof Error ? error.message : fallback;
 }
