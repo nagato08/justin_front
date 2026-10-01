@@ -5,7 +5,7 @@ Interface client, administration et livraison pour le service de commande. Le pr
 ## Fonctions livrées
 
 - catalogue public, panier persistant et état ouvert/fermé de la prise de commandes ;
-- inscription et connexion par code SMS (Firebase) ou par e-mail ;
+- inscription et connexion par e-mail ou Google ;
 - commande avec compte obligatoire, livraison ou retrait, espèces ou PawaPay ;
 - destination choisie sur la carte, depuis le GPS du téléphone ou à un autre emplacement ;
 - calcul du tarif de livraison par l’API, avec un minimum de 500 FCFA ;
@@ -20,14 +20,11 @@ Copier `.env.example` vers `.env` :
 
 ```env
 VITE_API_URL=https://api.votre-domaine.cm/api/v1
-VITE_FIREBASE_API_KEY=…
-VITE_FIREBASE_AUTH_DOMAIN=votre-projet.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=votre-projet
-VITE_FIREBASE_APP_ID=…
+VITE_GOOGLE_CLIENT_ID=votre-client-id.apps.googleusercontent.com
 VITE_MAP_STYLE_URL=https://votre-fournisseur/style.json
 ```
 
-`VITE_API_URL` doit être l’URL publique HTTPS du backend. Dans la console Firebase, activer le fournisseur « Téléphone » et ajouter le domaine du frontend aux domaines autorisés. Le style MapLibre de démonstration convient au développement ; configurez un fournisseur de tuiles pour la production.
+`VITE_API_URL` doit être l’URL publique HTTPS du backend. Dans Google Cloud, ajouter le domaine du frontend aux origines JavaScript autorisées. Le style MapLibre de démonstration convient au développement ; configurez un fournisseur de tuiles pour la production.
 
 ## Développement
 
@@ -53,10 +50,7 @@ Les fichiers de production sont générés dans `dist/`.
 ```bash
 docker build \
   --build-arg VITE_API_URL=https://api.votre-domaine.cm/api/v1 \
-  --build-arg VITE_FIREBASE_API_KEY=… \
-  --build-arg VITE_FIREBASE_AUTH_DOMAIN=votre-projet.firebaseapp.com \
-  --build-arg VITE_FIREBASE_PROJECT_ID=votre-projet \
-  --build-arg VITE_FIREBASE_APP_ID=… \
+  --build-arg VITE_GOOGLE_CLIENT_ID=votre-client-id.apps.googleusercontent.com \
   --build-arg VITE_MAP_STYLE_URL=https://votre-fournisseur/style.json \
   -t ma-cuisine-frontend .
 
