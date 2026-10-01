@@ -1,4 +1,4 @@
-import { Clock3, MapPin, Search, ShoppingBag, Smartphone, Store, X } from "lucide-react";
+import { ChefHat, Clock3, MapPin, Search, ShoppingBag, Store, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import heroFood from "../assets/hero-food-v2.webp";
@@ -52,21 +52,22 @@ export function HomePage() {
         <section className="hero container">
           <div className="hero-copy">
             <StoreStatusPill store={store} />
-            <h1>
-              La cuisine de la maison, <em>livrée chez vous.</em>
-            </h1>
-            <p>Des plats généreux préparés à la commande à Douala. Choisissez, placez votre point sur la carte, suivez le livreur en direct.</p>
+            <h1>La cuisine de la maison, <span className="hl">livrée chez vous.</span></h1>
+            <p>Des plats généreux préparés à la commande à Douala, suivis en direct jusqu’à votre porte.</p>
             <div className="hero-actions">
               <a href="#menu" className="button primary lg">Voir le menu</a>
-              {user && <Link to="/orders" className="button secondary lg">Suivre ma commande</Link>}
+              {user && <Link to="/orders" className="button secondary lg">Mes commandes</Link>}
             </div>
           </div>
           <figure className="hero-media">
-            <img src={heroFood} alt="Assiette de riz, poulet grillé, plantain et crudités" width={720} height={720} />
-            <figcaption className="hero-note">
-              <MapPin aria-hidden="true" />
-              <span><strong>Livraison dès 500 FCFA</strong> selon votre quartier</span>
-            </figcaption>
+            <img src={heroFood} alt="Assiette de riz, poulet grillé, plantain et crudités" width={720} height={720} fetchPriority="high" />
+            <div className="stamp" aria-hidden="true">
+              <svg viewBox="0 0 100 100">
+                <defs><path id="stamp-circle" d="M50,50 m-38,0 a38,38 0 1,1 76,0 a38,38 0 1,1 -76,0" /></defs>
+                <text><textPath href="#stamp-circle" textLength="234" lengthAdjust="spacing">Fait maison • Livré chaud • Douala •</textPath></text>
+              </svg>
+              <span><ChefHat /></span>
+            </div>
           </figure>
         </section>
 
@@ -129,23 +130,23 @@ export function HomePage() {
         </section>
 
         <section className="how container" aria-labelledby="how-title">
-          <h2 id="how-title">Comment ça marche</h2>
-          <ol className="how-steps">
-            <li>
-              <span className="how-icon"><ShoppingBag aria-hidden="true" /></span>
-              <div><h3>Vous choisissez</h3><p>Ajoutez les plats du jour à votre panier.</p></div>
+          <h2 id="how-title">Commander prend deux minutes.</h2>
+          <ol className="how-bento">
+            <li className="how-cell accent wide">
+              <ShoppingBag aria-hidden="true" />
+              <div><h3>Choisissez vos plats</h3><p>Seuls les plats réellement disponibles aujourd’hui sont affichés.</p></div>
             </li>
-            <li>
-              <span className="how-icon"><MapPin aria-hidden="true" /></span>
-              <div><h3>Vous placez le point</h3><p>Votre position GPS ou n’importe quel repère sur la carte.</p></div>
+            <li className="how-cell inverse">
+              <MapPin aria-hidden="true" />
+              <div><h3>Placez le point</h3><p>Votre position GPS ou n’importe quel repère sur la carte.</p></div>
             </li>
-            <li>
-              <span className="how-icon"><Clock3 aria-hidden="true" /></span>
-              <div><h3>Vous suivez</h3><p>Chaque étape en direct, jusqu’à la position du livreur.</p></div>
+            <li className="how-cell">
+              <span className="how-figure">500 F</span>
+              <div><h3>Livraison</h3><p>Le minimum. Le tarif exact dépend de votre quartier.</p></div>
             </li>
-            <li>
-              <span className="how-icon"><Smartphone aria-hidden="true" /></span>
-              <div><h3>Vous payez simplement</h3><p>En espèces à la réception ou par Mobile Money.</p></div>
+            <li className="how-cell muted-cell wide">
+              <Clock3 aria-hidden="true" />
+              <div><h3>Suivez, puis payez</h3><p>Chaque étape en direct jusqu’au livreur. En espèces à la réception ou par Mobile Money.</p></div>
             </li>
           </ol>
         </section>

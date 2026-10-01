@@ -16,10 +16,10 @@ export function ProductCard({ product, orderable }: { product: Product; orderabl
     <article className={quantity > 0 ? "product-card in-cart" : "product-card"}>
       <Link to={href} className="product-card-media" tabIndex={-1} aria-hidden="true">
         {image ? <img src={image} alt="" loading="lazy" /> : <span className="media-empty"><ImageOff /></span>}
-        {product.portions > 1 && <span className="product-card-portions">{product.portions} pers.</span>}
       </Link>
       <div className="product-card-body">
         <h3><Link to={href}>{product.name}</Link></h3>
+        {product.portions > 1 && <span className="product-card-meta">Pour {product.portions} personnes</span>}
         <p>{product.description || "Portion généreuse, préparée à la commande."}</p>
         <div className="product-card-footer">
           <strong className="price">{money(product.price)}</strong>

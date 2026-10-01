@@ -79,7 +79,6 @@ export function AuthPage() {
           <p className="auth-lead">Un compte protège vos commandes et vous permet de suivre la livraison en direct.</p>
 
           <GoogleButton onCredential={google} />
-          <p className="auth-hint">Le plus rapide : aucun mot de passe à retenir.</p>
 
           <div className="divider"><span>ou avec votre e-mail</span></div>
 

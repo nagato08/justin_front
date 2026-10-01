@@ -6,8 +6,8 @@ import { SOCKET_URL } from "../lib/api";
 import type { DeliveryLocation } from "../lib/types";
 
 const STYLE = (import.meta.env.VITE_MAP_STYLE_URL as string | undefined) || "https://demotiles.maplibre.org/style.json";
-const DRIVER_COLOR = "#c2521f";
-const DESTINATION_COLOR = "#1f4a3d";
+const DRIVER_COLOR = "#d63c22";
+const DESTINATION_COLOR = "#1f2547";
 
 interface TrackingMapProps {
   token: string;

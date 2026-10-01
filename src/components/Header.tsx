@@ -15,7 +15,7 @@ export function Header() {
       <a className="skip-link" href="#contenu">Aller au contenu</a>
       <header className="site-header">
         <div className="container header-inner">
-          <Link to={home} className="header-logo" aria-label="Ma cuisine — accueil">
+          <Link to={home} className="header-logo" aria-label="Ma cuisine, accueil">
             <Logo />
           </Link>
 

@@ -21,7 +21,6 @@ export function ProductGallery({ product }: { product: Product }) {
     <div className="gallery">
       <div className="gallery-main">
         <img src={images[active]} alt={product.name} />
-        {images.length > 1 && <span className="gallery-counter">{active + 1} / {images.length}</span>}
       </div>
       {images.length > 1 && (
         <div className="gallery-thumbs" role="group" aria-label="Photos du plat">

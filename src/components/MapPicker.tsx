@@ -7,7 +7,7 @@ export interface Coordinates { latitude: number; longitude: number }
 
 const DEFAULT: Coordinates = { latitude: 4.0511, longitude: 9.7679 };
 const STYLE = (import.meta.env.VITE_MAP_STYLE_URL as string | undefined) || "https://demotiles.maplibre.org/style.json";
-const MARKER_COLOR = "#c2521f";
+const MARKER_COLOR = "#d63c22";
 
 export function MapPicker({ value, onChange }: { value?: Coordinates; onChange(value: Coordinates): void }) {
   const container = useRef<HTMLDivElement>(null);

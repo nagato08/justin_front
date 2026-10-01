@@ -53,5 +53,10 @@ export function GoogleButton({ onCredential }: { onCredential(token: string): vo
   }, [clientId]);
 
   if (!clientId) return <Alert tone="warning">La connexion Google n’est pas encore configurée. Utilisez votre e-mail.</Alert>;
-  return <div className="google-button" ref={ref} aria-label="Continuer avec Google" />;
+  return (
+    <>
+      <div className="google-button" ref={ref} aria-label="Continuer avec Google" />
+      <p className="auth-hint">Le plus rapide : aucun mot de passe à retenir.</p>
+    </>
+  );
 }
